@@ -1,0 +1,1005 @@
+{
+  "info": {
+    "name": "MS Data Gateway - Query Engine & QAD Business Services API",
+    "description": "Colección oficial para ms-data-gateway. Refleja fielmente el alcance real del sistema:\n1. Query Engine: SELECT, Metadata, Catálogo de Datasources, Consultas Registradas, Multi-datasource Routing y Auditoría.\n2. QAD Business Services (SOAP QXtend): Escritura de negocio en QAD mediante servicios SOAP/QXtend oficiales (BCreditor, etc.) y gestión del catálogo gateway_service.\nNOTA IMPORTANTE: No se soportan escrituras genéricas JDBC (INSERT/UPDATE/DELETE). Toda escritura de negocio en QAD se realiza exclusivamente mediante QXtend SOAP.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "URL base del microservicio ms-data-gateway"
+    },
+    {
+      "key": "apiKey",
+      "value": "dev-api-key-001",
+      "type": "string",
+      "description": "API Key de consumo estándar (X-API-Key)"
+    },
+    {
+      "key": "adminKey",
+      "value": "dev-admin-key-999",
+      "type": "string",
+      "description": "API Key administrativa para catálogo y CRUD (X-Admin-Key)"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - QAD Business Services (SOAP QXtend)",
+      "description": "Servicios de negocio para operaciones de escritura en QAD ERP mediante QXtend SOAP y gestión de su catálogo técnico en MySQL (gateway_service).",
+      "item": [
+        {
+          "name": "POST - Crear o Actualizar Creditor/Proveedor (BCreditor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"creditorCode\": \"60000011\",\n  \"businessRelationCode\": \"60000011\",\n  \"businessRelationName1\": \"HUGO CESAR MUNTANE RODRIGUEZ\",\n  \"vatDeliveryType\": \"PRODUCT\",\n  \"vatPercentageLevel\": \"NONE\",\n  \"taxZone\": \"MX\",\n  \"taxClass\": \"HON\",\n  \"paymentConditionCode\": \"30\",\n  \"paymentConditionType\": \"NORMAL\",\n  \"currencyCode\": \"MXN\",\n  \"purchaseTypeCode\": \"B001\",\n  \"invControlGLProfileCode\": \"P_2010\",\n  \"cnControlGLProfileCode\": \"P_2010\",\n  \"prepayControlGLProfileCode\": \"P_2010\",\n  \"divisionProfileCode\": \"Sub_0620\",\n  \"reasonCode\": \"INV TO APPROVE\",\n  \"purchaseGLProfileCode\": \"P_Compras\",\n  \"companyCode\": \"0111\",\n  \"domain\": \"MXMGT01\",\n  \"entity\": \"0109\",\n  \"action\": \"SAVE\",\n  \"activityCode\": \"CREATE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/qad/creditors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "qad",
+                "creditors"
+              ]
+            },
+            "description": "Recibe un JSON simple, construye el Envelope SOAP 1.1 con WS-Addressing y dsSessionContext, ejecuta la llamada HTTP a QXtend y retorna una respuesta JSON estructurada."
+          },
+          "response": [
+            {
+              "name": "200 OK - Proveedor Procesado Exitosamente",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{apiKey}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"creditorCode\": \"60000011\",\n  \"businessRelationCode\": \"60000011\",\n  \"businessRelationName1\": \"HUGO CESAR MUNTANE RODRIGUEZ\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/qad/creditors",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "qad",
+                    "creditors"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Operación procesada exitosamente en QAD\",\n  \"data\": {\n    \"result\": \"success\",\n    \"status\": \"COMPLETED\"\n  },\n  \"sessionContext\": {\n    \"action\": \"SAVE\",\n    \"apiName\": \"bcreditor\",\n    \"BLFSessionId\": \"36287425\",\n    \"domain\": \"MXMGT01\",\n    \"entity\": \"0109\",\n    \"version\": \"ERP3_1\"\n  },\n  \"executionTimeMs\": 588\n}"
+            },
+            {
+              "name": "400 Bad Request - Error Funcional de Negocio QAD (GEN-O-2)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{apiKey}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"creditorCode\": \"60000011\",\n  \"businessRelationName1\": \"HUGO CESAR MUNTANE RODRIGUEZ\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/qad/creditors",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "qad",
+                    "creditors"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"errorCode\": \"GEN-O-2\",\n  \"message\": \"Creditor already exists in system - 60000011\",\n  \"exceptions\": [\n    {\n      \"messageNumber\": \"GEN-O-2\",\n      \"messageDesc\": \"Creditor already exists in system\",\n      \"messageField\": \"CreditorCode\",\n      \"messageData\": \"60000011\",\n      \"messageSev\": \"ERROR\",\n      \"messageContext\": \"CreditorCode\",\n      \"level\": 1\n    }\n  ],\n  \"executionTimeMs\": 312\n}"
+            },
+            {
+              "name": "500 Internal Server Error - QAD SOAP Fault",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-API-Key",
+                    "value": "{{apiKey}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"creditorCode\": \"INVALID\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/qad/creditors",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "qad",
+                    "creditors"
+                  ]
+                }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"errorCode\": \"SOAP_FAULT\",\n  \"message\": \"QDoc is not supported. Unable to find session context\",\n  \"executionTimeMs\": 120\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET - Listar Servicios QAD Registrados en Catálogo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/qad/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "qad",
+                "services"
+              ]
+            },
+            "description": "Retorna la lista de servicios de negocio registrados en gateway_service."
+          }
+        },
+        {
+          "name": "GET - Consultar Detalle de Servicio QAD por Código",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/qad/services/BCREDITOR",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "qad",
+                "services",
+                "BCREDITOR"
+              ]
+            },
+            "description": "Obtiene la metadata técnica de un servicio específico (ej. BCREDITOR)."
+          }
+        },
+        {
+          "name": "POST - Registrar Nuevo Servicio QAD en Catálogo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceCode\": \"BBUSINESSRELATION\",\n  \"serviceName\": \"QAD Business Relation Maintenance\",\n  \"serviceType\": \"SOAP_QXtend\",\n  \"mapperClass\": \"com.gateway.qad.mapper.impl.BBusinessRelationMapper\",\n  \"operationName\": \"bbusinessrelation\",\n  \"endpointUrl\": \"http://qvarrazldb02.odqad.com:8180/qxiqonddb/services/QdocWebService\",\n  \"enabled\": true,\n  \"timeoutSeconds\": 60\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/qad/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "qad",
+                "services"
+              ]
+            },
+            "description": "Registra un nuevo servicio en la tabla gateway_service (no ejecuta SQL sobre QAD, solo gestiona el catálogo de control)."
+          }
+        },
+        {
+          "name": "PUT - Actualizar Servicio QAD en Catálogo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceName\": \"QAD Business Relation Maintenance Updated\",\n  \"serviceType\": \"SOAP_QXtend\",\n  \"mapperClass\": \"com.gateway.qad.mapper.impl.BBusinessRelationMapper\",\n  \"operationName\": \"bbusinessrelation\",\n  \"endpointUrl\": \"http://qvarrazldb02.odqad.com:8180/qxiqonddb/services/QdocWebService\",\n  \"enabled\": true,\n  \"timeoutSeconds\": 90\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/qad/services/BBUSINESSRELATION",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "qad",
+                "services",
+                "BBUSINESSRELATION"
+              ]
+            },
+            "description": "Actualiza la configuración técnica de un servicio en la tabla gateway_service."
+          }
+        },
+        {
+          "name": "DELETE - Eliminar Servicio QAD del Catálogo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/qad/services/BBUSINESSRELATION",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "qad",
+                "services",
+                "BBUSINESSRELATION"
+              ]
+            },
+            "description": "Elimina el registro del servicio en gateway_service."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Query Engine (Unified API - SELECT)",
+      "description": "Endpoints de consumo unificado para ejecución de consultas SELECT registradas con enrutamiento dinámico multi-datasource (/api/v1/gateway/*).",
+      "item": [
+        {
+          "name": "POST - Ejecutar SELECT: MYSQL_LIST_DATASOURCES",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryCode\": \"MYSQL_LIST_DATASOURCES\",\n  \"params\": {},\n  \"page\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/gateway/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "query"
+              ]
+            },
+            "description": "Ejecuta una consulta SELECT en MySQL sobre gateway_datasource."
+          }
+        },
+        {
+          "name": "POST - Ejecutar SELECT: MYSQL_LIST_QUERIES",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryCode\": \"MYSQL_LIST_QUERIES\",\n  \"params\": {},\n  \"page\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/gateway/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "query"
+              ]
+            },
+            "description": "Ejecuta una consulta SELECT en MySQL sobre el catálogo gateway_query."
+          }
+        },
+        {
+          "name": "POST - Ejecutar SELECT: OPENEDGE_LIST_TABLES",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryCode\": \"OPENEDGE_LIST_TABLES\",\n  \"params\": {},\n  \"page\": 1,\n  \"pageSize\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/gateway/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "query"
+              ]
+            },
+            "description": "Ejecuta un SELECT en OpenEdge contra el catálogo SYSPROGRESS."
+          }
+        },
+        {
+          "name": "GET - Listar DataSources Disponibles en el Catálogo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/gateway/datasources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "datasources"
+              ]
+            },
+            "description": "Lista los orígenes de datos activos en el gateway (OpenEdge, MySQL, etc.)."
+          }
+        },
+        {
+          "name": "GET - Listar Queries Públicas Registradas en el Catálogo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/gateway/queries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "queries"
+              ]
+            },
+            "description": "Lista las consultas SELECT registradas activas disponibles para clientes."
+          }
+        },
+        {
+          "name": "GET - Obtener Detalle de Query por queryCode",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/gateway/queries/MYSQL_LIST_DATASOURCES",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "queries",
+                "MYSQL_LIST_DATASOURCES"
+              ]
+            },
+            "description": "Obtiene la especificación y metadatos de parámetros de una consulta por su código."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Query Catalog Administration (CRUD)",
+      "description": "Administración del catálogo de control en MySQL (gateway_datasource, gateway_query, gateway_query_parameter).",
+      "item": [
+        {
+          "name": "DataSources CRUD",
+          "item": [
+            {
+              "name": "GET - Listar DataSources (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Admin-Key",
+                    "value": "{{adminKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/gateway/admin/datasources",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "gateway",
+                    "admin",
+                    "datasources"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "GET - Obtener DataSource por ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Admin-Key",
+                    "value": "{{adminKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/gateway/admin/datasources/MYSQL_GATEWAY",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "gateway",
+                    "admin",
+                    "datasources",
+                    "MYSQL_GATEWAY"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "POST - Crear DataSource en Catálogo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Admin-Key",
+                    "value": "{{adminKey}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"datasourceId\": \"POSTGRES_CRM\",\n  \"datasourceCode\": \"PG_CRM\",\n  \"name\": \"PostgreSQL CRM Database\",\n  \"dbType\": \"POSTGRESQL\",\n  \"driverClassName\": \"org.postgresql.Driver\",\n  \"jdbcUrl\": \"jdbc:postgresql://localhost:5432/crm_db\",\n  \"username\": \"crm_user\",\n  \"password\": \"crm_pass\",\n  \"minIdle\": 2,\n  \"maxPoolSize\": 10,\n  \"connectionTimeoutMs\": 30000,\n  \"validationQuery\": \"SELECT 1\",\n  \"enabled\": true,\n  \"environment\": \"dev\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/gateway/admin/datasources",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "gateway",
+                    "admin",
+                    "datasources"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "DELETE - Eliminar DataSource del Catálogo",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "X-Admin-Key",
+                    "value": "{{adminKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/gateway/admin/datasources/POSTGRES_CRM",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "gateway",
+                    "admin",
+                    "datasources",
+                    "POSTGRES_CRM"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Queries CRUD",
+          "item": [
+            {
+              "name": "GET - Listar Queries (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Admin-Key",
+                    "value": "{{adminKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/gateway/admin/queries",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "gateway",
+                    "admin",
+                    "queries"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "POST - Crear Consulta SELECT en Catálogo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Admin-Key",
+                    "value": "{{adminKey}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"queryCode\": \"OPENEDGE_SAMPLE_SELECT\",\n  \"datasourceId\": \"openedge-mfg\",\n  \"queryType\": \"SELECT\",\n  \"description\": \"Consulta SELECT de ejemplo en OpenEdge\",\n  \"sqlText\": \"SELECT * FROM sysprogress.SYSTABLES WHERE TBL = 'SYSTABLES'\",\n  \"enabled\": true,\n  \"timeoutSeconds\": 15,\n  \"cacheTtlSeconds\": 0,\n  \"parameters\": []\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/gateway/admin/queries",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "gateway",
+                    "admin",
+                    "queries"
+                  ]
+                },
+                "description": "Registra una consulta SELECT en el catálogo sin recompilar."
+              }
+            },
+            {
+              "name": "PATCH - Habilitar / Deshabilitar Query (Toggle)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "X-Admin-Key",
+                    "value": "{{adminKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/gateway/admin/queries/OPENEDGE_SAMPLE_SELECT/toggle?enabled=false",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "gateway",
+                    "admin",
+                    "queries",
+                    "OPENEDGE_SAMPLE_SELECT",
+                    "toggle"
+                  ],
+                  "query": [
+                    {
+                      "key": "enabled",
+                      "value": "false"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "DELETE - Eliminar Query del Catálogo",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "X-Admin-Key",
+                    "value": "{{adminKey}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/gateway/admin/queries/OPENEDGE_SAMPLE_SELECT",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "gateway",
+                    "admin",
+                    "queries",
+                    "OPENEDGE_SAMPLE_SELECT"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 - Metadata JDBC Engine",
+      "description": "Inspección de metadatos de esquemas, tablas, columnas e índices vía DatabaseMetaData.",
+      "item": [
+        {
+          "name": "GET - Listar Esquemas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/metadata/schemas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "metadata",
+                "schemas"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Listar Tablas de un Esquema",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/metadata/tables?schema=sysprogress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "metadata",
+                "tables"
+              ],
+              "query": [
+                {
+                  "key": "schema",
+                  "value": "sysprogress"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Listar Columnas de una Tabla",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/metadata/tables/SYSTABLES/columns?schema=sysprogress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "metadata",
+                "tables",
+                "SYSTABLES",
+                "columns"
+              ],
+              "query": [
+                {
+                  "key": "schema",
+                  "value": "sysprogress"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Primary Keys de una Tabla",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/metadata/tables/SYSTABLES/primary-keys?schema=sysprogress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "metadata",
+                "tables",
+                "SYSTABLES",
+                "primary-keys"
+              ],
+              "query": [
+                {
+                  "key": "schema",
+                  "value": "sysprogress"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Índices de una Tabla",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/metadata/tables/SYSTABLES/indexes?schema=sysprogress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "metadata",
+                "tables",
+                "SYSTABLES",
+                "indexes"
+              ],
+              "query": [
+                {
+                  "key": "schema",
+                  "value": "sysprogress"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Actuator & Health",
+      "description": "Métricas, estado de salud y observabilidad.",
+      "item": [
+        {
+          "name": "GET - Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "info"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Métricas Prometheus",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/prometheus",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "prometheus"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Security Tests",
+      "description": "Pruebas de validación de seguridad (API Keys y Admin Keys).",
+      "item": [
+        {
+          "name": "GET - Petición sin Header API Key (Rechazo 401/403)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/gateway/datasources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "datasources"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET - Petición con API Key Inválida (Rechazo 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "clave-falsa-123"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/gateway/datasources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "datasources"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+# ─────────────────────────────────────────────────────────────────────────
+# PERFIL: qa (Control de Calidad)
+# ─────────────────────────────────────────────────────────────────────────
+# Se activa con: SPRING_PROFILES_ACTIVE=qa
+#
+# Variables de entorno REQUERIDAS (sin secretos hardcodeados):
+#   MYSQL_GATEWAY_HOST, MYSQL_GATEWAY_USER, MYSQL_GATEWAY_PASSWORD
+#   OPENEDGE_HOST, OPENEDGE_PORT, OPENEDGE_DATABASE, OPENEDGE_USER, OPENEDGE_PASSWORD
+#   API_KEY_1, API_KEY_2, ADMIN_KEY
+#   QAD_SOAP_ENDPOINT_URL, QAD_DOMAIN, QAD_ENTITY, QAD_COMPANY_CODE
+# ─────────────────────────────────────────────────────────────────────────
+
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQL_GATEWAY_HOST}:${MYSQL_GATEWAY_PORT:3306}/${MYSQL_GATEWAY_DATABASE:gateway-data}?useSSL=${MYSQL_GATEWAY_USE_SSL:true}&serverTimezone=UTC
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_GATEWAY_USER}
+    password: ${MYSQL_GATEWAY_PASSWORD}
+    hikari:
+      pool-name: GatewayCatalogPool-QA
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-test-query: SELECT 1
+
+openedge:
+  host: ${OPENEDGE_HOST}
+  port: ${OPENEDGE_PORT:18111}
+  database: ${OPENEDGE_DATABASE}
+  username: ${OPENEDGE_USER}
+  password: ${OPENEDGE_PASSWORD}
+  encryption-method: ${OPENEDGE_ENCRYPTION_METHOD:ssl}
+  crypto-protocol-version: ${OPENEDGE_CRYPTO_PROTOCOL:TLSv1.2}
+  enable-cipher-suites: ${OPENEDGE_CIPHER_SUITES:TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256}
+  validate-server-certificate: ${OPENEDGE_VALIDATE_CERT:false}
+  hikari:
+    pool-name: OpenEdgePool-QA
+    minimum-idle: 2
+    maximum-pool-size: 8
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+    leak-detection-threshold: 60000
+    connection-test-query: SELECT 1 FROM sysprogress.SYSTABLES WHERE TBL = 'SYSTABLES'
+
+gateway:
+  datasources:
+    default-datasource: openedge-mfg
+
+    openedge-mfg:
+      type: OPENEDGE
+      driver-class-name: com.ddtek.jdbc.openedge.OpenEdgeDriver
+      host: ${OPENEDGE_HOST}
+      port: ${OPENEDGE_PORT:18111}
+      database: ${OPENEDGE_DATABASE}
+      username: ${OPENEDGE_USER}
+      password: ${OPENEDGE_PASSWORD}
+      encryption-method: ${OPENEDGE_ENCRYPTION_METHOD:ssl}
+      crypto-protocol-version: ${OPENEDGE_CRYPTO_PROTOCOL:TLSv1.2}
+      enable-cipher-suites: ${OPENEDGE_CIPHER_SUITES:TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256}
+      validate-server-certificate: ${OPENEDGE_VALIDATE_CERT:false}
+      hikari:
+        pool-name: OpenEdgePool-QA
+        minimum-idle: 2
+        maximum-pool-size: 8
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+        leak-detection-threshold: 60000
+        connection-test-query: SELECT 1 FROM sysprogress.SYSTABLES WHERE TBL = 'SYSTABLES'
+
+    mysql-gateway:
+      type: MYSQL
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://${MYSQL_GATEWAY_HOST}:${MYSQL_GATEWAY_PORT:3306}/${MYSQL_GATEWAY_DATABASE:gateway-data}?useSSL=${MYSQL_GATEWAY_USE_SSL:true}&serverTimezone=UTC
+      username: ${MYSQL_GATEWAY_USER}
+      password: ${MYSQL_GATEWAY_PASSWORD}
+      hikari:
+        pool-name: MySqlPool-QA
+        minimum-idle: 2
+        maximum-pool-size: 8
+        connection-timeout: 30000
+        connection-test-query: SELECT 1
+
+  security:
+    api-keys:
+      - ${API_KEY_1}
+      - ${API_KEY_2}
+    admin-keys:
+      - ${ADMIN_KEY}
+
+  operations:
+    delete-enabled: ${GATEWAY_DELETE_ENABLED:false}
+    audit-enabled: true
+
+  queries:
+    max-rows: 500
+
+qad:
+  qxtend:
+    endpoint-url: ${QAD_SOAP_ENDPOINT_URL}
+    default-domain: ${QAD_DOMAIN}
+    default-version: ${QAD_VERSION:ERP3_1}
+    default-entity: ${QAD_ENTITY}
+    default-company-code: ${QAD_COMPANY_CODE}
+    default-action: ${QAD_ACTION:SAVE}
+
+logging:
+  file:
+    name: ${LOG_FILE:${LOG_PATH:C:/apps/ms-data-gateway/logs}/ms-data-gateway.log}
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH:C:/apps/ms-data-gateway/logs}/archive/ms-data-gateway.%d{yyyy-MM-dd}.%i.log.gz
+      max-file-size: ${LOG_MAX_FILE_SIZE:20MB}
+      max-history: ${LOG_MAX_HISTORY:5}
+      total-size-cap: ${LOG_TOTAL_SIZE_CAP:500MB}
+      clean-history-on-start: true
+  level:
+    root: INFO
+    com.gateway: INFO
+    org.springframework.jdbc: WARN
+    com.zaxxer.hikari: INFO
+    com.ddtek.jdbc: WARN

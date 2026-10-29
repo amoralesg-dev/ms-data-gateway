@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# ARCHIVO DE EJEMPLO: queries-examples.yml
+# ═══════════════════════════════════════════════════════════════════════════
+# ATENCIÓN:
+# Este archivo contiene ÚNICAMENTE EJEMPLOS de configuración para registrar
+# consultas y operaciones en ms-data-gateway.
+#
+# Las tablas aquí referenciadas (como 'pub.addr' o 'pub.customer') son ilustrativas
+# y NO deben asumirse como existentes en todos los entornos o bases OpenEdge.
+#
+# Para utilizar consultas en un entorno real:
+# 1. Utilizar los endpoints de metadatos (/api/v1/metadata/tables y columns)
+#    para descubrir las tablas y columnas existentes en su esquema.
+# 2. Definir las consultas requeridas en este archivo o en application.yml.
+# 3. Cargar este archivo al arrancar el microservicio mediante:
+#    java -jar ms-data-gateway.jar --spring.config.additional-location=file:./queries-examples.yml
+# ═══════════════════════════════════════════════════════════════════════════
+
+gateway:
+  registered-queries:
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # EJEMPLOS DE CONSULTAS DE LECTURA (SELECT)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # Ejemplo 1: Consulta básica con parámetro de filtrado y ordenamiento
+    example-list-suppliers:
+      sql: "SELECT ad_addr, ad_name, ad_city, ad_country FROM pub.addr WHERE ad_addr LIKE :prefix ORDER BY ad_addr"
+      description: "[EJEMPLO] Listar proveedores por prefijo de código (asume tabla ilustrativa pub.addr)"
+      type: SELECT
+
+    # Ejemplo 2: Consulta por identificador exacto
+    example-get-supplier-by-id:
+      sql: "SELECT ad_addr, ad_name, ad_city, ad_phone, ad_country FROM pub.addr WHERE ad_addr = :supplierId"
+      description: "[EJEMPLO] Obtener detalle de proveedor por código"
+      type: SELECT
+
+    # Ejemplo 3: Conteo agregado
+    example-count-suppliers:
+      sql: "SELECT COUNT(*) AS total FROM pub.addr"
+      description: "[EJEMPLO] Conteo total de registros en tabla"
+      type: SELECT
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # EJEMPLOS DE OPERACIONES DE ESCRITURA (INSERT / UPDATE / DELETE)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # Ejemplo 4: Inserción parametrizada
+    example-create-supplier:
+      sql: "INSERT INTO pub.addr (ad_addr, ad_name, ad_city, ad_country) VALUES (:code, :name, :city, :country)"
+      description: "[EJEMPLO] Crear nuevo proveedor con parámetros nombrados"
+      type: INSERT
+
+    # Ejemplo 5: Actualización de campos
+    example-update-supplier:
+      sql: "UPDATE pub.addr SET ad_name = :name, ad_city = :city WHERE ad_addr = :code"
+      description: "[EJEMPLO] Actualizar datos del proveedor"
+      type: UPDATE
+
+    # Ejemplo 6: Eliminación controlada (sujeta a gateway.operations.delete-enabled)
+    example-delete-supplier:
+      sql: "DELETE FROM pub.addr WHERE ad_addr = :code"
+      description: "[EJEMPLO] Eliminar registro por código"
+      type: DELETE

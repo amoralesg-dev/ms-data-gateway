@@ -1,0 +1,146 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# CONFIGURACIÓN COMÚN — ms-data-gateway
+# ═══════════════════════════════════════════════════════════════════════════
+# Este archivo contiene ÚNICAMENTE configuración común entre ambientes.
+# El ambiente activo se selecciona externamente mediante:
+#   SPRING_PROFILES_ACTIVE=local
+#   SPRING_PROFILES_ACTIVE=dev
+#   SPRING_PROFILES_ACTIVE=prod
+#   SPRING_PROFILES_ACTIVE=test
+# ═══════════════════════════════════════════════════════════════════════════
+
+spring:
+  application:
+    name: ms-data-gateway
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      pool-name: GatewayCatalogPool
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-test-query: SELECT 1
+
+server:
+  address: 0.0.0.0
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# ─────────────────────────────────────────────────────────────────────────
+# Actuator / Observabilidad
+# ─────────────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: when_authorized
+    prometheus:
+      enabled: true
+  health:
+    db:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active:default}
+    export:
+      prometheus:
+        enabled: true
+
+# ─────────────────────────────────────────────────────────────────────────
+# Swagger / OpenAPI
+# ─────────────────────────────────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    try-it-out-enabled: true
+    display-request-duration: true
+  show-actuator: false
+
+# ─────────────────────────────────────────────────────────────────────────
+# Propiedades estructurales comunes de OpenEdge (sin credenciales ni host)
+# ─────────────────────────────────────────────────────────────────────────
+openedge:
+  port: ${OPENEDGE_PORT:18111}
+  crypto-protocol-version: TLSv1.2
+  enable-cipher-suites: TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256
+  validate-server-certificate: false
+  hikari:
+    pool-name: OpenEdgePool
+    minimum-idle: 2
+    maximum-pool-size: 10
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000
+    connection-test-query: SELECT 1 FROM sysprogress.SYSTABLES WHERE TBL = 'SYSTABLES'
+
+# ─────────────────────────────────────────────────────────────────────────
+# Configuración estructural común del Gateway (sin secretos ni credenciales)
+# ─────────────────────────────────────────────────────────────────────────
+gateway:
+  datasources:
+    default-datasource: openedge-mfg
+
+  security:
+    api-key-header: X-API-Key
+    admin-key-header: X-Admin-Key
+
+  queries:
+    max-rows: 1000
+    default-page-size: 50
+
+  admin-query:
+    max-page-size: 1000
+    default-page-size: 100
+
+  operations:
+    delete-enabled: false
+    audit-enabled: true
+
+  registered-queries: {}
+
+# ─────────────────────────────────────────────────────────────────────────
+# Configuración estructural común QAD QXtend SOAP Engine
+# ─────────────────────────────────────────────────────────────────────────
+qad:
+  qxtend:
+    default-version: ${QAD_VERSION:ERP3_1}
+    default-action: ${QAD_ACTION:SAVE}
+    connect-timeout-seconds: ${QAD_CONNECT_TIMEOUT:15}
+    read-timeout-seconds: ${QAD_READ_TIMEOUT:60}
+
+# ─────────────────────────────────────────────────────────────────────────
+# Logging y Rotación (Homologado con ms-pagos + Ruta externa persistente)
+# ─────────────────────────────────────────────────────────────────────────
+logging:
+  file:
+    name: ${LOG_FILE:${LOG_PATH:logs}/ms-data-gateway.log}
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH:logs}/archive/ms-data-gateway.%d{yyyy-MM-dd}.%i.log.gz
+      max-file-size: ${LOG_MAX_FILE_SIZE:20MB}
+      max-history: ${LOG_MAX_HISTORY:5}
+      total-size-cap: ${LOG_TOTAL_SIZE_CAP:500MB}
+      clean-history-on-start: true
+  level:
+    root: INFO
+    com.gateway: INFO
+    org.springframework: INFO
+    com.zaxxer.hikari: INFO
+    com.ddtek.jdbc: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] %logger{36} - %msg%n"

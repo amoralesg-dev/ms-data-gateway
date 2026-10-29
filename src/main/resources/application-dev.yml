@@ -1,0 +1,144 @@
+# ─────────────────────────────────────────────────────────────────────────
+# PERFIL: dev (Servidor de Desarrollo — Despliegue CI/CD GitHub Actions)
+# ─────────────────────────────────────────────────────────────────────────
+# Se activa con: SPRING_PROFILES_ACTIVE=dev
+#
+# IMPORTANTE:
+# Ninguna credencial, API key, Admin key ni conexión sensible está hardcodeada.
+# Todos los valores dependientes del servidor se inyectan vía variables de entorno
+# configuradas en el servicio Windows/NSSM o en el servidor DEV.
+#
+# Variables de entorno requeridas en el servidor DEV:
+#   MYSQL_GATEWAY_HOST, MYSQL_GATEWAY_PORT (default 3306), MYSQL_GATEWAY_DATABASE
+#   MYSQL_GATEWAY_USER, MYSQL_GATEWAY_PASSWORD
+#   OPENEDGE_HOST, OPENEDGE_PORT (default 18111), OPENEDGE_DATABASE
+#   OPENEDGE_USER, OPENEDGE_PASSWORD, OPENEDGE_ENCRYPTION_METHOD (default NoEncryption)
+#   API_KEY_1, API_KEY_2, ADMIN_KEY
+#   QAD_SOAP_ENDPOINT_URL, QAD_DOMAIN, QAD_ENTITY, QAD_COMPANY_CODE
+#   SERVER_PORT (opcional, default 8080)
+#   LOG_PATH (opcional, default C:/apps/ms-data-gateway/logs)
+# ─────────────────────────────────────────────────────────────────────────
+
+spring:
+  datasource:
+    # Datasource principal de CONTROL / CATÁLOGO (MySQL DEV)
+    url: jdbc:mysql://${MYSQL_GATEWAY_HOST}:${MYSQL_GATEWAY_PORT:3306}/${MYSQL_GATEWAY_DATABASE:gateway-data}?useSSL=${MYSQL_GATEWAY_USE_SSL:false}&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_GATEWAY_USER}
+    password: ${MYSQL_GATEWAY_PASSWORD}
+    hikari:
+      pool-name: GatewayCatalogPool-DEV
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-test-query: SELECT 1
+
+openedge:
+  host: ${OPENEDGE_HOST:}
+  port: ${OPENEDGE_PORT:18111}
+  database: ${OPENEDGE_DATABASE:}
+  username: ${OPENEDGE_USER:}
+  password: ${OPENEDGE_PASSWORD:}
+  encryption-method: ${OPENEDGE_ENCRYPTION_METHOD:NoEncryption}
+  crypto-protocol-version: ${OPENEDGE_CRYPTO_PROTOCOL:TLSv1.2}
+  enable-cipher-suites: ${OPENEDGE_CIPHER_SUITES:TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256}
+  validate-server-certificate: ${OPENEDGE_VALIDATE_CERT:false}
+  hikari:
+    pool-name: OpenEdgePool-DEV
+    minimum-idle: 1
+    maximum-pool-size: 5
+    connection-timeout: 30000
+    idle-timeout: 300000
+    max-lifetime: 900000
+    leak-detection-threshold: 30000
+    connection-test-query: SELECT 1 FROM sysprogress.SYSTABLES WHERE TBL = 'SYSTABLES'
+
+gateway:
+  datasources:
+    default-datasource: openedge-mfg
+
+    openedge-mfg:
+      type: OPENEDGE
+      driver-class-name: com.ddtek.jdbc.openedge.OpenEdgeDriver
+      host: ${OPENEDGE_HOST:}
+      port: ${OPENEDGE_PORT:18111}
+      database: ${OPENEDGE_DATABASE:}
+      username: ${OPENEDGE_USER:}
+      password: ${OPENEDGE_PASSWORD:}
+      encryption-method: ${OPENEDGE_ENCRYPTION_METHOD:NoEncryption}
+      crypto-protocol-version: ${OPENEDGE_CRYPTO_PROTOCOL:TLSv1.2}
+      enable-cipher-suites: ${OPENEDGE_CIPHER_SUITES:TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256}
+      validate-server-certificate: ${OPENEDGE_VALIDATE_CERT:false}
+      hikari:
+        pool-name: OpenEdgePool-DEV
+        minimum-idle: 1
+        maximum-pool-size: 5
+        connection-timeout: 30000
+        idle-timeout: 300000
+        max-lifetime: 900000
+        leak-detection-threshold: 30000
+        connection-test-query: SELECT 1 FROM sysprogress.SYSTABLES WHERE TBL = 'SYSTABLES'
+
+    mysql-gateway:
+      type: MYSQL
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://${MYSQL_GATEWAY_HOST}:${MYSQL_GATEWAY_PORT:3306}/${MYSQL_GATEWAY_DATABASE:gateway-data}?useSSL=${MYSQL_GATEWAY_USE_SSL:false}&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      username: ${MYSQL_GATEWAY_USER}
+      password: ${MYSQL_GATEWAY_PASSWORD}
+      hikari:
+        pool-name: MySqlPool-DEV
+        minimum-idle: 1
+        maximum-pool-size: 5
+        connection-timeout: 30000
+        connection-test-query: SELECT 1
+
+  security:
+    api-keys:
+      - ${API_KEY_1}
+      - ${API_KEY_2}
+    admin-keys:
+      - ${ADMIN_KEY}
+
+  operations:
+    delete-enabled: ${GATEWAY_DELETE_ENABLED:true}
+    audit-enabled: true
+
+qad:
+  qxtend:
+    endpoint-url: ${QAD_SOAP_ENDPOINT_URL}
+    default-domain: ${QAD_DOMAIN:MXMGT01}
+    default-version: ${QAD_VERSION:ERP3_1}
+    default-entity: ${QAD_ENTITY:0109}
+    default-company-code: ${QAD_COMPANY_CODE:0111}
+    default-action: ${QAD_ACTION:SAVE}
+    connect-timeout-seconds: ${QAD_CONNECT_TIMEOUT:15}
+    read-timeout-seconds: ${QAD_READ_TIMEOUT:60}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    prometheus:
+      enabled: true
+
+logging:
+  file:
+    name: ${LOG_FILE:${LOG_PATH:C:/apps/ms-data-gateway/logs}/ms-data-gateway.log}
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH:C:/apps/ms-data-gateway/logs}/archive/ms-data-gateway.%d{yyyy-MM-dd}.%i.log.gz
+      max-file-size: ${LOG_MAX_FILE_SIZE:20MB}
+      max-history: ${LOG_MAX_HISTORY:5}
+      total-size-cap: ${LOG_TOTAL_SIZE_CAP:500MB}
+      clean-history-on-start: true
+  level:
+    root: INFO
+    com.gateway: DEBUG
+    org.springframework: INFO
+    org.springframework.jdbc: DEBUG
+    com.zaxxer.hikari: INFO
+    com.ddtek.jdbc: WARN

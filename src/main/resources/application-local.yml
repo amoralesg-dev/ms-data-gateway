@@ -1,0 +1,121 @@
+# ─────────────────────────────────────────────────────────────────────────
+# PERFIL: local (Trabajo local de desarrollo)
+# ─────────────────────────────────────────────────────────────────────────
+# Se activa con: SPRING_PROFILES_ACTIVE=local
+# Conserva la configuración para ejecución en estación local, permitiendo
+# sobreescribir cualquier valor mediante variables de entorno locales.
+# ─────────────────────────────────────────────────────────────────────────
+
+spring:
+  datasource:
+    # Datasource principal de CONTROL / CATÁLOGO (MySQL local)
+    url: jdbc:mysql://${MYSQL_GATEWAY_HOST:localhost}:${MYSQL_GATEWAY_PORT:3306}/${MYSQL_GATEWAY_DATABASE:gateway-data}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_GATEWAY_USER:gateway-data}
+    password: ${MYSQL_GATEWAY_PASSWORD:}
+    hikari:
+      pool-name: GatewayCatalogPool-LOCAL
+      minimum-idle: 1
+      maximum-pool-size: 5
+      connection-test-query: SELECT 1
+
+openedge:
+  host: ${OPENEDGE_HOST:qvarrazldb01}
+  port: ${OPENEDGE_PORT:18111}
+  database: ${OPENEDGE_DATABASE:mfgdb}
+  username: ${OPENEDGE_USER:}
+  password: ${OPENEDGE_PASSWORD:}
+  encryption-method: ${OPENEDGE_ENCRYPTION_METHOD:NoEncryption}
+  crypto-protocol-version: TLSv1.2
+  enable-cipher-suites: TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256
+  validate-server-certificate: false
+  hikari:
+    pool-name: OpenEdgePool-LOCAL
+    minimum-idle: 1
+    maximum-pool-size: 5
+    connection-timeout: 30000
+    idle-timeout: 300000
+    max-lifetime: 900000
+    leak-detection-threshold: 30000
+    connection-test-query: SELECT 1 FROM sysprogress.SYSTABLES WHERE TBL = 'SYSTABLES'
+
+gateway:
+  datasources:
+    default-datasource: openedge-mfg
+
+    openedge-mfg:
+      type: OPENEDGE
+      driver-class-name: com.ddtek.jdbc.openedge.OpenEdgeDriver
+      host: ${OPENEDGE_HOST:qvarrazldb01}
+      port: ${OPENEDGE_PORT:18111}
+      database: ${OPENEDGE_DATABASE:mfgdb}
+      username: ${OPENEDGE_USER:}
+      password: ${OPENEDGE_PASSWORD:}
+      encryption-method: ${OPENEDGE_ENCRYPTION_METHOD:NoEncryption}
+      hikari:
+        pool-name: OpenEdgePool-LOCAL
+        minimum-idle: 1
+        maximum-pool-size: 5
+        connection-timeout: 30000
+        idle-timeout: 300000
+        max-lifetime: 900000
+        leak-detection-threshold: 30000
+        connection-test-query: SELECT 1 FROM sysprogress.SYSTABLES WHERE TBL = 'SYSTABLES'
+
+    mysql-gateway:
+      type: MYSQL
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://${MYSQL_GATEWAY_HOST:localhost}:${MYSQL_GATEWAY_PORT:3306}/${MYSQL_GATEWAY_DATABASE:gateway-data}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      username: ${MYSQL_GATEWAY_USER:gateway-data}
+      password: ${MYSQL_GATEWAY_PASSWORD:}
+      hikari:
+        pool-name: MySqlPool-LOCAL
+        minimum-idle: 1
+        maximum-pool-size: 5
+        connection-timeout: 30000
+        connection-test-query: SELECT 1
+
+  security:
+    api-keys:
+      - ${API_KEY_1:dev-api-key-001}
+      - ${API_KEY_2:dev-api-key-002}
+    admin-keys:
+      - ${ADMIN_KEY:dev-admin-key-999}
+
+  operations:
+    delete-enabled: true
+    audit-enabled: true
+
+qad:
+  qxtend:
+    endpoint-url: ${QAD_SOAP_ENDPOINT_URL:http://qvarrazldb02.odqad.com:8180/qxiqonddb/services/QdocWebService}
+    default-domain: ${QAD_DOMAIN:MXMGT01}
+    default-version: ${QAD_VERSION:ERP3_1}
+    default-entity: ${QAD_ENTITY:0109}
+    default-company-code: ${QAD_COMPANY_CODE:0111}
+    default-action: ${QAD_ACTION:SAVE}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    loggers:
+      enabled: true
+
+logging:
+  file:
+    name: ${LOG_FILE:${LOG_PATH:logs}/ms-data-gateway.log}
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_PATH:logs}/archive/ms-data-gateway.%d{yyyy-MM-dd}.%i.log.gz
+  level:
+    root: INFO
+    com.gateway: DEBUG
+    org.springframework.jdbc: DEBUG
+    com.zaxxer.hikari: DEBUG
+    com.ddtek.jdbc: WARN

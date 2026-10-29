@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.gateway</groupId>
+    <artifactId>ms-data-gateway</artifactId>
+    <version>1.0.0</version>
+    <name>ms-data-gateway</name>
+    <description>Progress OpenEdge JDBC Data Gateway Microservice</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <springdoc.version>2.5.0</springdoc.version>
+        <!--
+            Versiones de los drivers OpenEdge instalados en repositorio Maven local.
+            Para instalar, ejecutar: .\install-drivers.ps1
+        -->
+        <openedge.driver.version>6.0.0</openedge.driver.version>
+        <progress.lib.version>12.0.0</progress.lib.version>
+    </properties>
+
+    <!--
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║  DRIVERS PROGRESS OPENEDGE — GESTIÓN SIN REPOSITORIO MAVEN PÚBLICO     ║
+    ╠══════════════════════════════════════════════════════════════════════════╣
+    ║                                                                          ║
+    ║  Los drivers se instalan en el repositorio Maven LOCAL (~/.m2) mediante  ║
+    ║  el script: .\install-drivers.ps1                                        ║
+    ║                                                                          ║
+    ║  El script extrae los JARs de java.zip (incluido en el proyecto) e      ║
+    ║  instala automáticamente:                                                ║
+    ║                                                                          ║
+    ║  - com.progress.datadirect:openedge:6.0.0                               ║
+    ║    JAR: libs/openedge.jar                                                ║
+    ║    Driver: com.ddtek.jdbc.openedge.OpenEdgeDriver                        ║
+    ║    Función: Driver JDBC principal para conectarse a OpenEdge             ║
+    ║                                                                          ║
+    ║  - com.progress:progress:12.0.0                                          ║
+    ║    JAR: libs/progress.jar                                                ║
+    ║    Función: Librería base SSL/TLS requerida para encryptionMethod=ssl    ║
+    ║             Sin este JAR, las conexiones SSL a OpenEdge fallarán.        ║
+    ║                                                                          ║
+    ║  INICIO RÁPIDO PARA NUEVOS DESARROLLADORES:                              ║
+    ║    1. .\install-drivers.ps1   (solo la primera vez)                      ║
+    ║    2. set OPENEDGE_USER=...                                              ║
+    ║    3. set OPENEDGE_PASSWORD=...                                          ║
+    ║    4. mvn spring-boot:run                                                ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+    -->
+
+    <dependencies>
+        <!-- =================== Spring Boot Core =================== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- =================== OpenAPI / Swagger =================== -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- =================== Metrics / Prometheus =================== -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- =================== Progress OpenEdge JDBC — Repositorio Local Maven =================== -->
+        <!--
+            openedge.jar — Driver JDBC DataDirect para Progress OpenEdge
+            ─────────────────────────────────────────────────────────────
+            Origen: java.zip extraído a libs/openedge.jar
+            Clase del driver: com.ddtek.jdbc.openedge.OpenEdgeDriver
+            Registro automático: META-INF/services/java.sql.Driver (ServiceLoader)
+            DataSource disponible: com.ddtek.jdbcx.openedge.OpenEdgeDataSource40
+
+            Instalación en .m2:
+            mvn install:install-file -Dfile=libs/openedge.jar
+                -DgroupId=com.progress.datadirect -DartifactId=openedge
+                -Dversion=6.0.0 -Dpackaging=jar -DgeneratePom=true
+        -->
+        <dependency>
+            <groupId>com.progress.datadirect</groupId>
+            <artifactId>openedge</artifactId>
+            <version>${openedge.driver.version}</version>
+        </dependency>
+
+        <!--
+            progress.jar — Librería base de Progress/OpenEdge
+            ─────────────────────────────────────────────────
+            Origen: java.zip extraído a libs/progress.jar
+            Paquetes clave: com.progress.ubroker.ssl, com.progress.mf.runtime.SSLConnectionConfiguration
+            DEPENDENCIA OBLIGATORIA para encryptionMethod=ssl y CryptoProtocolVersion=TLSv1.2
+            Sin este JAR, la conexión SSL falla con ClassNotFoundException.
+
+            Instalación en .m2:
+            mvn install:install-file -Dfile=libs/progress.jar
+                -DgroupId=com.progress -DartifactId=progress
+                -Dversion=12.0.0 -Dpackaging=jar -DgeneratePom=true
+        -->
+        <dependency>
+            <groupId>com.progress</groupId>
+            <artifactId>progress</artifactId>
+            <version>${progress.lib.version}</version>
+        </dependency>
+
+        <!-- =================== MySQL JDBC Driver =================== -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- =================== PostgreSQL JDBC Driver =================== -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- =================== Microsoft SQL Server JDBC Driver =================== -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- =================== Oracle JDBC Driver =================== -->
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- =================== Lombok =================== -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- =================== Jackson =================== -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
+        <!-- =================== TEST SCOPE =================== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            H2 in-memory database — solo para pruebas.
+            En el perfil de pruebas reemplaza OpenEdge sin requerir conexión real.
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>ms-data-gateway</finalName>
+
+        <plugins>
+            <!--
+                Spring Boot Maven Plugin:
+                El fat JAR incluirá openedge.jar y progress.jar automáticamente
+                al estar en el repositorio Maven local (no se requiere systemPath).
+            -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

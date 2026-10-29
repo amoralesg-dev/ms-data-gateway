@@ -1,0 +1,336 @@
+name: CI CD MS-DATA-GATEWAY DEV
+
+on:
+  push:
+    branches:
+      - DEV
+  workflow_dispatch:
+    inputs:
+      rollback_backup:
+        description: "Opcional: Nombre del JAR en backup para rollback (ej. ms-data-gateway-12.jar o latest). Dejar vacio para deploy normal."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ms-data-gateway-dev
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build MS Data Gateway
+    if: ${{ github.event.inputs.rollback_backup == '' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Instalar drivers propietarios Progress OpenEdge en .m2 local
+        run: |
+          mkdir -p libs
+          unzip -o java.zip -d libs/
+          mvn install:install-file \
+            -Dfile=libs/openedge.jar \
+            -DgroupId=com.progress.datadirect \
+            -DartifactId=openedge \
+            -Dversion=6.0.0 \
+            -Dpackaging=jar \
+            -DgeneratePom=true \
+            -q
+          mvn install:install-file \
+            -Dfile=libs/progress.jar \
+            -DgroupId=com.progress \
+            -DartifactId=progress \
+            -Dversion=12.0.0 \
+            -Dpackaging=jar \
+            -DgeneratePom=true \
+            -q
+
+      - name: Compilar y correr tests
+        run: mvn clean verify -Dspring.profiles.active=test -e
+
+      - name: Subir reportes de Surefire
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Validar y normalizar JAR ejecutable
+        shell: bash
+        run: |
+          if [ ! -f "target/ms-data-gateway.jar" ]; then
+            SOURCE_JAR=$(find target -maxdepth 1 -type f -name "ms-data-gateway*.jar" ! -name "*.jar.original" | head -n 1)
+            if [ -z "$SOURCE_JAR" ]; then
+              echo "ERROR: No se encontró el JAR ejecutable en target/."
+              exit 1
+            fi
+            cp "$SOURCE_JAR" target/ms-data-gateway.jar
+          fi
+
+          if [ ! -s "target/ms-data-gateway.jar" ]; then
+            echo "ERROR: El archivo target/ms-data-gateway.jar está vacío."
+            exit 1
+          fi
+
+          echo "JAR ejecutable validado:"
+          ls -lh target/ms-data-gateway.jar
+
+      - name: Subir JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ms-data-gateway-jar
+          path: target/ms-data-gateway.jar
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy-dev:
+    name: Deploy MS Data Gateway DEV
+    needs: build
+    # EXCLUSIVO PARA AMBIENTE DEV — Nunca despliega a main/master/prod
+    if: >
+      always() &&
+      (needs.build.result == 'success' || (github.event_name == 'workflow_dispatch' && github.event.inputs.rollback_backup != '')) &&
+      (github.ref == 'refs/heads/DEV' || github.ref == 'refs/heads/dev') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: [self-hosted, Windows, X64, backend, ms-data-gateway, dev]
+
+    env:
+      DEPLOY_STAGING_DIR: ${{ vars.DEPLOY_STAGING_DIR || 'C:\deploy\ms-data-gateway' }}
+      APP_HOME_DIR: ${{ vars.APP_HOME_DIR || 'C:\apps\ms-data-gateway' }}
+      APP_BACKUP_DIR: ${{ vars.APP_BACKUP_DIR || 'C:\apps\ms-data-gateway\backup' }}
+      APP_LOGS_DIR: ${{ vars.APP_LOGS_DIR || 'C:\apps\ms-data-gateway\logs' }}
+      NSSM_SERVICE_NAME: ${{ vars.NSSM_SERVICE_NAME || 'ms-data-gateway-dev' }}
+      SERVER_PORT: ${{ vars.SERVER_PORT || '8080' }}
+      SPRING_PROFILES_ACTIVE: dev
+
+    steps:
+      - name: Preparar carpeta temporal de despliegue
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path $env:DEPLOY_STAGING_DIR)) {
+            New-Item -ItemType Directory -Path $env:DEPLOY_STAGING_DIR -Force | Out-Null
+          }
+          Get-ChildItem -Path $env:DEPLOY_STAGING_DIR -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+          Write-Host "Carpeta temporal lista: $env:DEPLOY_STAGING_DIR"
+
+      - name: Descargar JAR generado
+        if: ${{ github.event.inputs.rollback_backup == '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ms-data-gateway-jar
+          path: ${{ env.DEPLOY_STAGING_DIR }}
+
+      - name: Preparar JAR desde backup (Modo Rollback Manual)
+        if: ${{ github.event.inputs.rollback_backup != '' }}
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $requested = '${{ github.event.inputs.rollback_backup }}'.Trim()
+
+          if ($requested -eq 'latest') {
+            $selected = Get-ChildItem -Path $env:APP_BACKUP_DIR -Filter 'ms-data-gateway-*.jar' -ErrorAction Stop |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+          } else {
+            $candidatePath = Join-Path $env:APP_BACKUP_DIR $requested
+            if (-not (Test-Path $candidatePath)) {
+              throw "No existe el backup solicitado: $candidatePath"
+            }
+            $selected = Get-Item $candidatePath
+          }
+
+          if (-not $selected) {
+            throw "No se encontraron backups disponibles en $env:APP_BACKUP_DIR"
+          }
+
+          Copy-Item -LiteralPath $selected.FullName -Destination (Join-Path $env:DEPLOY_STAGING_DIR 'ms-data-gateway.jar') -Force
+          Write-Host "Rollback preparado desde backup: $($selected.FullName)"
+
+      - name: Validar artifact descargado
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sourceJar = Join-Path $env:DEPLOY_STAGING_DIR 'ms-data-gateway.jar'
+
+          if (-not (Test-Path $sourceJar)) {
+            throw "ERROR: No existe el artifact a desplegar en $sourceJar"
+          }
+
+          $artifact = Get-Item $sourceJar
+          if ($artifact.Length -le 0) {
+            throw "ERROR: El JAR descargado está vacío (0 bytes). Se aborta antes de tocar el JAR activo."
+          }
+
+          Write-Host "Artifact validado correctamente:"
+          $artifact | Select-Object FullName, Length, LastWriteTime | Out-Host
+
+      - name: Detener servicio DEV
+        shell: cmd
+        run: |
+          net stop %NSSM_SERVICE_NAME% || exit /b 0
+
+      - name: Crear carpetas de aplicación, backup y logs externos si no existen
+        shell: cmd
+        run: |
+          if not exist "%APP_HOME_DIR%" mkdir "%APP_HOME_DIR%"
+          if not exist "%APP_BACKUP_DIR%" mkdir "%APP_BACKUP_DIR%"
+          if not exist "%APP_LOGS_DIR%" mkdir "%APP_LOGS_DIR%"
+          if not exist "%APP_LOGS_DIR%\archive" mkdir "%APP_LOGS_DIR%\archive"
+
+      - name: Respaldar JAR actual
+        shell: cmd
+        run: |
+          if exist "%APP_HOME_DIR%\ms-data-gateway.jar" (
+            copy "%APP_HOME_DIR%\ms-data-gateway.jar" "%APP_BACKUP_DIR%\ms-data-gateway-%GITHUB_RUN_NUMBER%.jar" /Y
+          )
+
+      - name: Conservar últimos 6 backups DEV
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $backups = Get-ChildItem "$env:APP_BACKUP_DIR\ms-data-gateway-*.jar" -ErrorAction SilentlyContinue |
+                     Sort-Object LastWriteTime -Descending
+
+          if ($backups) {
+            $backups | Select-Object -Skip 6 | Remove-Item -Force
+          }
+
+          Write-Host "Backups conservados (máximo 6):"
+          Get-ChildItem "$env:APP_BACKUP_DIR\ms-data-gateway-*.jar" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object Name, Length, LastWriteTime | Out-Host
+
+      - name: Copiar nuevo JAR y verificar integridad
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sourceJar = Join-Path $env:DEPLOY_STAGING_DIR 'ms-data-gateway.jar'
+          $targetJar = Join-Path $env:APP_HOME_DIR 'ms-data-gateway.jar'
+
+          Copy-Item -LiteralPath $sourceJar -Destination $targetJar -Force -ErrorAction Stop
+
+          if (-not (Test-Path $targetJar)) {
+            throw "ERROR: No se encontró el JAR desplegado en $targetJar"
+          }
+
+          $sourceItem = Get-Item $sourceJar
+          $targetItem = Get-Item $targetJar
+
+          if ($sourceItem.Length -ne $targetItem.Length -or $targetItem.Length -le 0) {
+            throw "ERROR: El tamaño del JAR desplegado ($($targetItem.Length)) no coincide con el origen ($($sourceItem.Length))."
+          }
+
+          $sourceHash = (Get-FileHash -Path $sourceJar -Algorithm SHA256).Hash
+          $targetHash = (Get-FileHash -Path $targetJar -Algorithm SHA256).Hash
+          if ($sourceHash -ne $targetHash) {
+            throw "ERROR: El hash SHA256 del JAR desplegado no coincide con el artifact origen."
+          }
+
+          Write-Host "JAR desplegado y verificado correctamente:"
+          $targetItem | Select-Object FullName, Length, LastWriteTime | Out-Host
+          Write-Host "SHA256: $targetHash"
+
+      - name: Asegurar desacoplamiento de AppStdout en NSSM para rotación Logback
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $serviceName = $env:NSSM_SERVICE_NAME
+          $stderrLog = Join-Path $env:APP_LOGS_DIR 'ms-data-gateway-error.log'
+          $nssmRegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName\Parameters"
+
+          if (Test-Path $nssmRegPath) {
+            $params = Get-ItemProperty -Path $nssmRegPath
+            if ($params.PSObject.Properties.Name -contains 'AppStdout' -and $params.AppStdout -like '*ms-data-gateway.log') {
+              Remove-ItemProperty -Path $nssmRegPath -Name 'AppStdout' -ErrorAction SilentlyContinue
+              Write-Host "AppStdout desacoplado de ms-data-gateway.log en NSSM para permitir rotación de Logback."
+            }
+            Set-ItemProperty -Path $nssmRegPath -Name 'AppStderr' -Value $stderrLog -Type ExpandString -ErrorAction SilentlyContinue
+          }
+
+      - name: Iniciar servicio DEV
+        shell: cmd
+        run: |
+          sc start %NSSM_SERVICE_NAME%
+          timeout /t 15
+          sc query %NSSM_SERVICE_NAME%
+
+      - name: Esperar arranque
+        shell: cmd
+        run: ping 127.0.0.1 -n 31 > nul
+
+      - name: Validar servicio Windows
+        shell: cmd
+        run: |
+          sc query %NSSM_SERVICE_NAME%
+
+      - name: Validar puerto DEV
+        shell: cmd
+        run: |
+          netstat -ano | findstr :%SERVER_PORT%
+
+      - name: Esperar Health DEV
+        shell: powershell
+        run: |
+          $url = "http://localhost:$($env:SERVER_PORT)/actuator/health"
+          $maxAttempts = 12
+
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+
+            Write-Host "Intento $i de $maxAttempts -> $url"
+
+            try {
+              $response = Invoke-RestMethod `
+                -Uri $url `
+                -TimeoutSec 10
+
+              if ($response.status -eq 'UP') {
+                Write-Host "Health OK (UP)"
+                $response | ConvertTo-Json -Depth 10
+                exit 0
+              }
+
+              Write-Host "Health respondió con estado: $($response.status)"
+            }
+            catch {
+              Write-Host $_.Exception.Message
+            }
+
+            Start-Sleep -Seconds 5
+          }
+
+          Write-Host "ERROR: El servicio nunca respondió UP en el health endpoint ($url)"
+
+          sc.exe query $env:NSSM_SERVICE_NAME
+
+          netstat -ano | findstr ":$($env:SERVER_PORT)"
+
+          $appLog = Join-Path $env:APP_LOGS_DIR 'ms-data-gateway.log'
+          $errLog = Join-Path $env:APP_LOGS_DIR 'ms-data-gateway-error.log'
+
+          if (Test-Path $appLog) {
+            Write-Host "=== Últimas 50 líneas de $appLog ==="
+            Get-Content $appLog -Tail 50
+          }
+
+          if (Test-Path $errLog) {
+            Write-Host "=== Últimas 50 líneas de $errLog ==="
+            Get-Content $errLog -Tail 50
+          }
+
+          exit 1

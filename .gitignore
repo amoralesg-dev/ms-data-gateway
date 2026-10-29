@@ -1,0 +1,66 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Logs locales y archivos de log
+logs/
+/logs
+*.log
+*.log.*
+*.gz
+
+# Librerías extraídas de java.zip (se extraen automáticamente en build / install-drivers.ps1)
+libs/*.jar
+
+# Artefactos y pruebas locales SoapUI / XML temporales de escritorio
+bcreditor-soapui-project.xml
+QDocBusinessRelation.xml
+/ms-data-gateway.postman_collection.json
+/docs/ms-data-gateway.postman_collection.json
+
+# Variables de entorno locales y secretos
+.env
+.env.*
+*.env
+*.env.cmd
+*.pem
+*.key
+*.p12
+*.jks
+*.pfx
+*.cer
+*.crt
+
+### STS / Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### OS ###
+.DS_Store
+Thumbs.db
