@@ -3,7 +3,7 @@ name: CI CD MS-DATA-GATEWAY DEV
 on:
   push:
     branches:
-      - DEV
+      - dev
   workflow_dispatch:
     inputs:
       rollback_backup:
