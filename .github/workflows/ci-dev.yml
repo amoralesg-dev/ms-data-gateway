@@ -115,7 +115,7 @@ jobs:
       APP_BACKUP_DIR: ${{ vars.APP_BACKUP_DIR || 'C:\apps\ms-data-gateway\backup' }}
       APP_LOGS_DIR: ${{ vars.APP_LOGS_DIR || 'C:\apps\ms-data-gateway\logs' }}
       NSSM_SERVICE_NAME: ${{ vars.NSSM_SERVICE_NAME || 'ms-data-gateway-dev' }}
-      SERVER_PORT: ${{ vars.SERVER_PORT || '8080' }}
+      SERVER_PORT: ${{ vars.SERVER_PORT || '8084' }}
       SPRING_PROFILES_ACTIVE: dev
 
     steps:
@@ -279,10 +279,26 @@ jobs:
         run: |
           sc query %NSSM_SERVICE_NAME%
 
-      - name: Validar puerto DEV
-        shell: cmd
+      - name: Validar puerto 8084
+        shell: powershell
         run: |
-          netstat -ano | findstr :%SERVER_PORT%
+          $port = $env:SERVER_PORT
+          $maxAttempts = 12
+
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+            Write-Host "Verificando puerto $port (intento $i de $maxAttempts)..."
+            $listening = netstat -ano | Select-String ":$port\s+.*LISTENING"
+            if ($listening) {
+              Write-Host "Puerto $port activo:"
+              $listening | Out-Host
+              exit 0
+            }
+            Start-Sleep -Seconds 5
+          }
+
+          Write-Host "ERROR: El puerto $port no entró en estado LISTENING tras $($maxAttempts * 5) segundos."
+          sc.exe query $env:NSSM_SERVICE_NAME
+          exit 1
 
       - name: Esperar Health DEV
         shell: powershell
